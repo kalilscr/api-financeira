@@ -7,6 +7,21 @@ app.use(express.json());
 
 const customers = []; // irá funcionar como um 'banco de dados' já que não conectamos um
 
+//Middleware
+function verifyIfExistsAccountCPF(request, response, next){
+    const { cpf } = request.headers;
+
+    const customer = customers.find((customer) => customer.cpf === cpf);
+
+    if(!customer) {
+        return response.status(400).json({error: "Customer not found"});
+    }
+
+    request.customer = customer; // para passar o customer para as demais rotas que estao chamando o middleware
+
+    return next();
+}
+
 app.post("/account", (request, response) => {
     const { cpf, name } = request.body;
 
@@ -30,11 +45,10 @@ app.post("/account", (request, response) => {
     return response.status(201).send(); // 201 quando o dado for criado
 });
 
-app.get("/statement/:cpf", (request, response) => {
-    const { cpf } = request.params;
+// app.use(verifyIfExistsAccountCPF); // se eu precisar que todas as rotas abaixo usem o middleware.
 
-    const customer = customers.find((customer) => customer.cpf === cpf);
-
+app.get("/statement", verifyIfExistsAccountCPF, (request, response) => { // middleware usado dessa forma se eu quiser que apenas algumas rotas especificas usem
+    const { customer } = request; // recuperando o acesso oo customer do middleware
     return response.json(customer.statement);
 });
 
